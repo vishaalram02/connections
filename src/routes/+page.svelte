@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { N, squares, colors, numbers } from '$lib';
 	import { emojis } from '$lib/emojis';
-	import { decodeJWT } from '$lib/utils';
+	import { decodeJWT, rng } from '$lib/utils';
 
 	let state = 0; // 0: playing, 1: win, 2: lose
 	let mistakes: number = 100;
@@ -53,7 +53,7 @@
 
 		for (let j = 0; j < N * N; j++) {
 			if (selected.includes(j)) continue;
-			if (Math.random() > 0.3) continue;
+			if (rng() > 0.3) continue;
 
 			squares[j].fade = true;
 		}
@@ -61,7 +61,7 @@
 		await new Promise((resolve) => setTimeout(resolve, 250));
 
 		for (let j = 0; j < N * N; j++) {
-			if (squares[j].fade) squares[j].word = emojis[Math.floor(Math.random() * emojis.length)];
+			if (squares[j].fade) squares[j].word = emojis[Math.floor(rng() * emojis.length)];
 		}
 
 		await new Promise((resolve) => setTimeout(resolve, 250));

@@ -1,4 +1,5 @@
 import { emojis } from './emojis';
+import { rng } from './utils';
 
 export const N = 10;
 
@@ -7,7 +8,7 @@ export let squares = Array.from({ length: N * N }, (_, i) => {
 		id: i,
 		x: Math.floor(i / N),
 		y: i % N,
-		word: emojis[Math.floor(Math.random() * emojis.length)],
+		word: emojis[Math.floor(rng() * emojis.length)],
 		bob: false,
 		shake: false,
 		fade: false

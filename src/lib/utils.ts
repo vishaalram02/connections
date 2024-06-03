@@ -1,4 +1,7 @@
 import { jwtDecode } from 'jwt-decode';
+import seedrandom from 'seedrandom';
+
+export const rng = seedrandom('');
 
 export interface INFO {
 	solved: number[];
