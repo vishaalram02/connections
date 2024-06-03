@@ -1,9 +1,7 @@
 import { jwtDecode } from 'jwt-decode';
-import seedrandom from 'seedrandom';
-
-export const rng = seedrandom('');
 
 export interface INFO {
+	board: number[];
 	solved: number[];
 	mistakes: number;
 	flag?: string;

@@ -20,6 +20,7 @@ export const POST = async ({ request }) => {
 	const cookies = parse(request.headers.get('cookie') || '');
 	if (!cookies || !cookies.auth) {
 		info = {
+			board: Array.from({ length: N * N }, (_, i) => i),
 			solved: [],
 			mistakes: 100
 		};
@@ -50,10 +51,20 @@ export const POST = async ({ request }) => {
 
 	if (solve == -1) {
 		info.mistakes -= 1;
-	} else if (!info.solved.includes(solve)) info.solved.push(solve);
+	} else if (!info.solved.includes(solve)) {
+		for (let i = 0; i < N; i++) {
+			const idx0 = req.guess[i];
+			const idx1 = info.board.indexOf(N * info.solved.length + i);
 
-	let response: any = { solve, missing };
-	let data: any = { solved: info.solved, mistakes: info.mistakes };
+			const temp = info.board[idx0];
+			info.board[idx0] = info.board[idx1];
+			info.board[idx1] = temp;
+		}
+		info.solved.push(solve);
+	}
+
+	let response: any = { solve, missing, board: info.board };
+	let data: any = { solved: info.solved, mistakes: info.mistakes, board: info.board };
 
 	if (info.solved.length == N) {
 		response.flag = FLAG;

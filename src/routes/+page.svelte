@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { N, squares, colors, numbers } from '$lib';
+	import { N, squares, colors, numbers, rng } from '$lib';
 	import { emojis } from '$lib/emojis';
-	import { decodeJWT, rng } from '$lib/utils';
+	import { decodeJWT } from '$lib/utils';
 
 	let state = 0; // 0: playing, 1: win, 2: lose
 	let mistakes: number = 100;
@@ -19,6 +19,12 @@
 		if (jwtData) {
 			mistakes = jwtData.mistakes;
 			solved = jwtData.solved;
+
+			for (let i = 0; i < N * N; i++) {
+				const id = squares[i].id;
+				squares[i].x = Math.floor(jwtData.board[id] / N);
+				squares[i].y = jwtData.board[id] % N;
+			}
 
 			if (solved.length == N && jwtData.flag) {
 				state = 1;
@@ -115,25 +121,10 @@
 			return;
 		}
 
-		for (let i = 0; i < N; i++) {
-			const idx0 = squares.findIndex((square) => square.id == selected[i]);
-			let idx1 = -1;
-
-			const x = squares[idx0].x;
-			const y = squares[idx0].y;
-
-			for (let j = 0; j < squares.length; j++) {
-				if (squares[j].x == solved.length && squares[j].y == i) {
-					idx1 = j;
-					break;
-				}
-			}
-
-			squares[idx0].x = squares[idx1].x;
-			squares[idx0].y = squares[idx1].y;
-
-			squares[idx1].x = x;
-			squares[idx1].y = y;
+		for (let i = 0; i < N * N; i++) {
+			const id = squares[i].id;
+			squares[i].x = Math.floor(data.board[id] / N);
+			squares[i].y = data.board[id] % N;
 		}
 
 		await new Promise((resolve) => setTimeout(resolve, 500));
@@ -222,7 +213,7 @@
 		{/each}
 		{#each solved as solve, i (solve)}
 			<div
-				class="p-1 relative z-10"
+				class="p-1 relative z-10 bg-white"
 				style:width="var(--game-w)"
 				style:height="calc(var(--game-h)/{N})"
 			>

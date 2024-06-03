@@ -1,7 +1,9 @@
 import { emojis } from './emojis';
-import { rng } from './utils';
+import seedrandom from 'seedrandom';
 
 export const N = 10;
+
+export let rng = seedrandom('');
 
 export let squares = Array.from({ length: N * N }, (_, i) => {
 	return {
