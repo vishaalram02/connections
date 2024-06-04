@@ -239,7 +239,7 @@
 			on:click={() => (selected = [])}
 			disabled={pending}
 		>
-			Desellect All
+			Deselect All
 		</button>
 
 		<button class="border border-black rounded-full px-4 py-3" on:click={() => restart()}>
