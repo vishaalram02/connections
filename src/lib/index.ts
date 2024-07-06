@@ -1,21 +1,22 @@
-import { emojis } from './emojis';
-import seedrandom from 'seedrandom';
+export const N = 8;
+export const L = 4;
 
-export const N = 10;
+export interface SQUARE {
+	id: number;
+	word: string;
+	bob: boolean;
+	shake: boolean;
+	fade: boolean;
+}
 
-export let rng = seedrandom('');
-
-export let squares = Array.from({ length: N * N }, (_, i) => {
-	return {
-		id: i,
-		x: Math.floor(i / N),
-		y: i % N,
-		word: emojis[Math.floor(rng() * emojis.length)],
-		bob: false,
-		shake: false,
-		fade: false
-	};
-});
+export interface INFO {
+	board: string[];
+	selected: number[];
+	solved: number[];
+	mistakes: number;
+	user: string;
+	flag?: string;
+}
 
 export const colors = [
 	'bg-red-400',

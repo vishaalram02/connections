@@ -1,77 +1,73 @@
-import { N } from '$lib';
-import { parse, serialize } from 'cookie';
 import jwt from 'jsonwebtoken';
-import { SECRET, FLAG } from '$env/static/private';
-import { type INFO } from '$lib/utils';
+import { parse, serialize } from 'cookie';
+import { createHash } from 'crypto';
 
-let solutions: number[][] = [];
-
-for (let i = 0; i < N; i++) {
-	solutions.push([]);
-	for (let j = 0; j < N; j++) {
-		solutions[i].push(i * N + j);
-	}
-}
+import { N, type INFO } from '$lib';
+import { categories } from '$lib/server';
+import { JWT_SECRET, FLAG_SECRET } from '$env/static/private';
 
 export const POST = async ({ request }) => {
-	let req = await request.json();
 	let info: INFO;
 
 	const cookies = parse(request.headers.get('cookie') || '');
 	if (!cookies || !cookies.auth) {
-		info = {
-			board: Array.from({ length: N * N }, (_, i) => i),
-			solved: [],
-			mistakes: 100
-		};
+		return new Response(JSON.stringify({ error: 'Missing board state' }), { status: 404 });
 	} else {
 		const token = cookies.auth;
 		try {
-			info = jwt.verify(token, SECRET) as INFO;
-		} catch (e) {
+			info = jwt.verify(token, JWT_SECRET) as INFO;
+		} catch {
 			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
 		}
 	}
 
-	if (info.mistakes < 0) {
-		return new Response(JSON.stringify({ error: 'No guesses left!' }), { status: 401 });
+	if (info.mistakes == 0) {
+		return new Response(JSON.stringify({ error: 'No guesses left!' }), { status: 404 });
 	}
 
-	let missing = N;
-	let solve = -1;
+	if (info.selected.length != N) {
+		return new Response(JSON.stringify({ error: 'Cannot guess now!' }), { status: 404 });
+	}
+
+	let correct = -1;
+
 	for (let i = 0; i < N; i++) {
-		let intersection = req.guess.filter((value: number) => solutions[i].includes(value));
-		missing = Math.min(N - intersection.length, missing);
+		let ok = true;
+		for (let j = 0; j < N; j++) {
+			if (info.board[info.selected[j]] != categories[i]) ok = false;
+		}
 
-		if (missing === 0) {
-			solve = i;
-			break;
+		if (ok == true) {
+			correct = i;
 		}
 	}
 
-	if (solve == -1) {
+	if (correct == -1) {
 		info.mistakes -= 1;
-	} else if (!info.solved.includes(solve)) {
+	} else {
 		for (let i = 0; i < N; i++) {
-			const idx0 = req.guess[i];
-			const idx1 = info.board.indexOf(N * info.solved.length + i);
+			const a = info.board[info.selected[i]];
+			const b = info.board[N * info.solved.length + i];
 
-			const temp = info.board[idx0];
-			info.board[idx0] = info.board[idx1];
-			info.board[idx1] = temp;
+			info.board[info.selected[i]] = b;
+			info.board[N * info.solved.length + i] = a;
+
+			info.selected = info.selected.map((select) =>
+				select == info.solved.length * N + i ? info.selected[i] : select
+			);
 		}
-		info.solved.push(solve);
+		info.solved.push(correct);
 	}
 
-	let response: any = { solve, missing, board: info.board };
-	let data: any = { solved: info.solved, mistakes: info.mistakes, board: info.board };
+	info.selected = [];
 
 	if (info.solved.length == N) {
-		response.flag = FLAG;
-		data.flag = FLAG;
+		info.flag = createHash('sha256').update(`${info.user}_${FLAG_SECRET}`).digest('hex');
 	}
 
-	const newToken = jwt.sign(data, SECRET, { expiresIn: '1h' });
+	const response = { solved: info.solved };
+
+	const newToken = jwt.sign(info, JWT_SECRET);
 	const cookie = serialize('auth', newToken, {
 		maxAge: 60 * 60,
 		path: '/'

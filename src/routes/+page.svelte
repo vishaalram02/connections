@@ -1,85 +1,63 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { N, squares, colors, numbers, rng } from '$lib';
-	import { emojis } from '$lib/emojis';
-	import { decodeJWT } from '$lib/utils';
+	import { N, L, colors, numbers, type SQUARE } from '$lib';
+	import { scale, fade } from 'svelte/transition';
 
-	let state = 0; // 0: playing, 1: win, 2: lose
-	let mistakes: number = 100;
-	let solved: number[] = [];
+	export let data;
+
+	let squares: SQUARE[] = Array.from({ length: N * N }, (_, i) => {
+		return {
+			id: i,
+			word: data.board[i],
+			bob: false,
+			shake: false,
+			fade: false
+		};
+	});
+
+	let state = data.solved.length == N ? 1 : data.mistakes == 0 ? 2 : 0; // 0: playing, 1: win, 2: lose
+	let mistakes: number = data.mistakes;
+	let solved: number[] = data.solved;
 	let active: number = -1;
-	let selected: number[] = [];
+	let selected: number[] = data.selected;
 	let pending: boolean = false;
 	let selecting: boolean = false;
-	let missing: number = -1;
 	let flag: string = '';
-
-	onMount(() => {
-		const jwtData = decodeJWT();
-		if (jwtData) {
-			mistakes = jwtData.mistakes;
-			solved = jwtData.solved;
-
-			for (let i = 0; i < N * N; i++) {
-				const id = squares[i].id;
-				squares[i].x = Math.floor(jwtData.board[id] / N);
-				squares[i].y = jwtData.board[id] % N;
-			}
-
-			if (solved.length == N && jwtData.flag) {
-				state = 1;
-				flag = jwtData.flag;
-			}
-			if (mistakes < 0) state = 2;
-		}
-	});
 
 	const restart = () => {
 		document.cookie = 'auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
 		window.location.reload();
 	};
 
-	const select = async (i: number) => {
-		if (pending) return;
-		if (selected.length < N) active = i;
+	const _select = async (id: number) => {
+		if (selected.length < N) active = id;
 
-		if (selected.includes(i)) {
-			selected = selected.filter((j) => j !== i);
-			return;
-		}
+		const res = await fetch('/select', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ guess: id })
+		});
+		if (res.status != 200) return;
+		const data = await res.json();
 
-		if (selected.length >= N) return;
-
-		while (selecting) {
-			await new Promise((resolve) => setTimeout(resolve, 50));
-		}
-
-		selecting = true;
-		selected = [...selected, i];
-
-		for (let j = 0; j < N * N; j++) {
-			if (selected.includes(j)) continue;
-			if (rng() > 0.3) continue;
-
-			squares[j].fade = true;
+		selected = data.selected;
+		for (let i = 0; i < N * N; i++) {
+			if (squares[i].word != data.board[squares[i].id]) squares[i].fade = true;
 		}
 
 		await new Promise((resolve) => setTimeout(resolve, 250));
 
-		for (let j = 0; j < N * N; j++) {
-			if (squares[j].fade) squares[j].word = emojis[Math.floor(rng() * emojis.length)];
+		for (let i = 0; i < N * N; i++) {
+			squares[i].word = data.board[squares[i].id];
 		}
 
 		await new Promise((resolve) => setTimeout(resolve, 250));
 
-		for (let j = 0; j < N * N; j++) {
-			squares[j].fade = false;
-		}
-
-		selecting = false;
+		for (let i = 0; i < N * N; i++) squares[i].fade = false;
 	};
 
-	const guess = async () => {
+	const _guess = async () => {
 		for (let i = 0; i < N; i++) {
 			squares[selected[i]].bob = true;
 			await new Promise((resolve) => setTimeout(resolve, 100));
@@ -94,15 +72,12 @@
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ guess: selected })
+			}
 		});
-
 		if (res.status != 200) return;
-
 		const data = await res.json();
 
-		if (data.solve == -1) {
+		if (data.solved.length == solved.length) {
 			for (let i = 0; i < N; i++) {
 				squares[selected[i]].shake = true;
 			}
@@ -112,79 +87,88 @@
 			}
 
 			selected = [];
-			missing = data.missing;
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-			missing = -1;
+			mistakes -= 1;
 
-			if (mistakes == 0) state = 2;
-			else mistakes -= 1;
 			return;
 		}
 
-		for (let i = 0; i < N * N; i++) {
-			const id = squares[i].id;
-			squares[i].x = Math.floor(data.board[id] / N);
-			squares[i].y = data.board[id] % N;
+		for (let i = 0; i < N; i++) {
+			let a = squares.findIndex((square) => square.id == selected[i]);
+			let b = squares.findIndex((square) => square.id == solved.length * N + i);
+
+			squares[a].id = solved.length * N + i;
+			squares[b].id = selected[i];
+
+			selected = selected.map((select) => (select == solved.length * N + i ? selected[i] : select));
+
+			selected[i] = solved.length * N + i;
 		}
 
 		await new Promise((resolve) => setTimeout(resolve, 500));
-
-		for (let i = 0; i < N; i++) {
-			const idx = selected[i];
-		}
 
 		selected = [];
-		solved = [...solved, data.solve];
+		solved = data.solved;
 
-		await new Promise((resolve) => setTimeout(resolve, 500));
 		if (data.flag) flag = data.flag;
-		if (solved.length == N) state = 1;
 	};
 
-	const submit = async () => {
+	const guess = async () => {
 		if (pending) return;
 		pending = true;
-		await guess();
-		pending = false;
-	};
+		await _guess();
 
-	$: {
-		if (state == 1) {
+		if (mistakes == 0) {
+			state = 2;
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+
+			for (let i = 0; i < N * N; i++) {
+				squares[i].word = '😈';
+			}
 			solved = [];
+		} else if (solved.length == N) {
+			state = 1;
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+
 			for (let i = 0; i < N * N; i++) {
 				squares[i].word = '🤑';
 			}
-		} else if (state == 2) {
 			solved = [];
-			for (let i = 0; i < N * N; i++) {
-				squares[i].word = '👿';
-			}
 		}
-	}
+
+		pending = false;
+	};
+
+	const select = async (id: number) => {
+		if (pending) return;
+
+		while (selecting) {
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
+
+		selecting = true;
+		await _select(id);
+		selecting = false;
+	};
 </script>
 
 <div class="flex flex-col items-center w-screen h-screen">
 	<div class="text-4xl font-bold mt-12">😈 EVIL CONNECTIONS 😈</div>
 	<div class="flex items-center h-16">
-		<div
-			class="rounded-lg py-2 px-3 {missing != -1
-				? 'text-white bg-black opacity-0 invfade'
-				: 'text-xl'}"
-		>
+		<div class="rounded-lg py-2 px-3 text-xl">
 			{#if state == 0}
-				{missing != -1
-					? `${numbers[1][missing - 1]} away...`
-					: `Create groups of ${numbers[0][N - 1]}!`}
+				{`Create groups of ${numbers[0][N - 1]}!`}
 			{:else if state == 1}
-				flag: {flag}
+				congrats! {flag}
 			{:else if state == 2}
 				you lose :(
 			{/if}
 		</div>
 	</div>
 	<div style:width="var(--game-w)" style:height="var(--game-h)">
-		{#each squares as { x, y, word, id, bob, shake, fade } (id)}
-			{@const include = selected.includes(id)}
+		{#each squares as square (square)}
+			{@const include = selected.includes(square.id)}
+			{@const x = Math.floor(square.id / N)}
+			{@const y = square.id % N}
 			<div
 				style:width="calc(var(--game-w)/{N})"
 				style:height="calc(var(--game-h)/{N})"
@@ -196,17 +180,17 @@
 					class="relative size-full rounded-md flex justify-center items-center transition bg-cell-0"
 					class:bg-cell-1={include}
 					class:text-white={include}
-					class:scale-90={active == id}
-					class:bg-cell-2={shake}
-					class:bob
-					class:shake
+					class:scale-90={active == square.id}
+					class:bg-cell-2={square.shake}
+					class:bob={square.bob}
+					class:shake={square.shake}
 					disabled={state != 0}
-					on:mousedown={() => select(id)}
+					on:mousedown={() => select(square.id)}
 					on:mouseup={() => (active = -1)}
 					on:mouseleave={() => (active = -1)}
 				>
-					<div class="font-bold text-xl" class:fade>
-						{word}
+					<div class="font-bold text-3xl" class:fade={square.fade}>
+						{square.word}
 					</div>
 				</button>
 			</div>
@@ -228,16 +212,27 @@
 			</div>
 		{/each}
 	</div>
-	<div class="text-lg my-4">
-		Mistakes remaining: {mistakes}
+	<div class="my-4 flex w-full h-6">
+		{#if mistakes > 0}
+			<div class="flex w-full" out:fade>
+				<div class="w-1/2 text-right">Mistakes remaining:</div>
+				<div class="w-1/2 flex items-center space-x-2 ml-3">
+					{#each { length: L } as _, i (i)}
+						{#if i < mistakes}
+							<div class="bg-gray-600 rounded-full h-4 w-4" out:scale />
+						{/if}
+					{/each}
+				</div>
+			</div>
+		{/if}
 	</div>
 	<div class="flex space-x-4">
 		<button
-			class="border rounded-full px-4 py-3 {pending
+			class="border rounded-full px-4 py-3 {pending || state != 0
 				? 'border-gray-500 text-gray-500'
 				: 'border-black'}"
 			on:click={() => (selected = [])}
-			disabled={pending}
+			disabled={pending || state != 0}
 		>
 			Deselect All
 		</button>
@@ -250,7 +245,7 @@
 			class="border rounded-full px-4 py-3 {selected.length == N
 				? 'bg-black text-white'
 				: 'border-gray-500 text-gray-500'}"
-			on:click={() => submit()}
+			on:click={() => guess()}
 			disabled={state != 0 || selected.length != N}
 		>
 			Submit
