@@ -100,7 +100,6 @@
 			squares[b].id = selected[i];
 
 			selected = selected.map((select) => (select == solved.length * N + i ? selected[i] : select));
-
 			selected[i] = solved.length * N + i;
 		}
 
