@@ -26,7 +26,7 @@ export const load: LayoutServerLoad = ({ url, cookies }) => {
 		}
 	}
 
-	const token = cookies.get('auth');
+	let token = cookies.get('auth');
 	let data: INFO = {
 		board: shuffle(
 			words.map((word) => emojis[word]),
@@ -38,17 +38,25 @@ export const load: LayoutServerLoad = ({ url, cookies }) => {
 		user: user
 	};
 
-	if (token) {
-		const info = jwt.decode(token) as INFO;
+	let reset = false;
+	
+	if (!token) {
+		reset = true;
+	} else {
+		let info = jwt.decode(token) as INFO;
 		if (info.user == user) data = info;
+		else reset = true;
 	}
 
-	const newToken = jwt.sign(data, JWT_SECRET, { expiresIn: '1h' });
-	cookies.set('auth', newToken, {
-		path: '/',
-		maxAge: 60 * 60,
-		httpOnly: false
-	});
+	if(reset){
+		const newToken = jwt.sign(data, JWT_SECRET, { expiresIn: '1h' });
+
+		cookies.set('auth', newToken, {
+			path: '/',
+			maxAge: 60 * 60,
+			httpOnly: false
+		});
+	}
 
 	return data;
 };
