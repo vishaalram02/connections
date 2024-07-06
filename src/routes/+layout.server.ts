@@ -38,18 +38,17 @@ export const load: LayoutServerLoad = ({ url, cookies }) => {
 		user: user
 	};
 
-	if (!token) {
-		const newToken = jwt.sign(data, JWT_SECRET, { expiresIn: '1h' });
-
-		cookies.set('auth', newToken, {
-			path: '/',
-			maxAge: 60 * 60,
-			httpOnly: false
-		});
-	} else {
+	if (token) {
 		const info = jwt.decode(token) as INFO;
 		if (info.user == user) data = info;
 	}
+
+	const newToken = jwt.sign(data, JWT_SECRET, { expiresIn: '1h' });
+	cookies.set('auth', newToken, {
+		path: '/',
+		maxAge: 60 * 60,
+		httpOnly: false
+	});
 
 	return data;
 };
