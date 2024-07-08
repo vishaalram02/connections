@@ -39,7 +39,7 @@ export const load: LayoutServerLoad = ({ url, cookies }) => {
 	};
 
 	let reset = false;
-	
+
 	if (!token) {
 		reset = true;
 	} else {
@@ -48,7 +48,7 @@ export const load: LayoutServerLoad = ({ url, cookies }) => {
 		else reset = true;
 	}
 
-	if(reset){
+	if (reset) {
 		const newToken = jwt.sign(data, JWT_SECRET, { expiresIn: '1h' });
 
 		cookies.set('auth', newToken, {

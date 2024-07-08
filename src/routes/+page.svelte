@@ -230,7 +230,7 @@
 			class="border rounded-full px-4 py-3 {pending || state != 0
 				? 'border-gray-500 text-gray-500'
 				: 'border-black'}"
-			on:click={() => (selected = [])}
+			on:click={() => select(-1)}
 			disabled={pending || state != 0}
 		>
 			Deselect All

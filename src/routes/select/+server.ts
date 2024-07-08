@@ -28,7 +28,7 @@ export const POST = async ({ request }) => {
 	if (
 		typeof req.guess != 'number' ||
 		!Number.isInteger(req.guess) ||
-		req.guess < info.solved.length * N ||
+		(req.guess != -1 && req.guess < info.solved.length * N) ||
 		req.guess >= N * N
 	) {
 		return new Response(JSON.stringify({ error: 'Invalid guess' }), { status: 404 });
@@ -38,7 +38,9 @@ export const POST = async ({ request }) => {
 	const x = Math.floor(guess / N),
 		y = guess % N;
 
-	if (info.selected.includes(guess)) {
+	if (req.guess == -1) {
+		info.selected = [];
+	} else if (info.selected.includes(guess)) {
 		info.selected = info.selected.filter((value) => value != guess);
 	} else {
 		if (info.selected.length >= N) {
