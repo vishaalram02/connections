@@ -35,6 +35,7 @@ export const load: LayoutServerLoad = ({ url, cookies }) => {
 		selected: [],
 		solved: [],
 		mistakes: L,
+		count: 0,
 		user: user
 	};
 

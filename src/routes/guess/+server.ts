@@ -61,11 +61,12 @@ export const POST = async ({ request }) => {
 
 	info.selected = [];
 
+	const response: { solved: number[]; flag?: string } = { solved: info.solved };
+
 	if (info.solved.length == N) {
 		info.flag = createHash('sha256').update(`${info.user}_${FLAG_SECRET}`).digest('hex');
+		response.flag = info.flag;
 	}
-
-	const response = { solved: info.solved };
 
 	const newToken = jwt.sign(info, JWT_SECRET);
 	const cookie = serialize('auth', newToken, {

@@ -21,7 +21,7 @@
 	let selected: number[] = data.selected;
 	let pending: boolean = false;
 	let selecting: boolean = false;
-	let flag: string = '';
+	let flag: string = data.flag ?? '';
 
 	const restart = () => {
 		document.cookie = 'auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';

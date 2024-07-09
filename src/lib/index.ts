@@ -15,6 +15,7 @@ export interface INFO {
 	solved: number[];
 	mistakes: number;
 	user: string;
+	count: number;
 	flag?: string;
 }
 
