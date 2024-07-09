@@ -34,8 +34,8 @@ export const POST = async ({ request }) => {
 		return new Response(JSON.stringify({ error: 'Invalid guess' }), { status: 404 });
 	}
 
-	if (info.count > 5000) {
-		return new Response(JSON.stringify({ error: 'Brute force detected!' }), { status: 404 });
+	if (info.count > 1000) {
+		return new Response(JSON.stringify({ error: "You're not very good at this. Restart and try again 😈" }), { status: 404 });
 	}
 
 	info.count += 1;
