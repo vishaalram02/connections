@@ -1,5 +1,6 @@
 export const N = 8;
 export const L = 4;
+export const C = 1000;
 
 export interface SQUARE {
 	id: number;

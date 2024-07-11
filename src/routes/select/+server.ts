@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-import { N, type INFO } from '$lib';
+import { N, C, type INFO } from '$lib';
 import { parse, serialize } from 'cookie';
 import { JWT_SECRET } from '$env/static/private';
 import { emojis } from '$lib/server';
@@ -11,18 +11,18 @@ export const POST = async ({ request }) => {
 
 	const cookies = parse(request.headers.get('cookie') || '');
 	if (!cookies || !cookies.auth) {
-		return new Response(JSON.stringify({ error: 'Missing board state' }), { status: 404 });
+		return new Response(JSON.stringify({ error: 'Missing board state' }), { status: 400 });
 	} else {
 		const token = cookies.auth;
 		try {
 			info = jwt.verify(token, JWT_SECRET) as INFO;
 		} catch {
-			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+			return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 400 });
 		}
 	}
 
 	if (req.guess === undefined) {
-		return new Response(JSON.stringify({ error: 'Missing guess!' }), { status: 404 });
+		return new Response(JSON.stringify({ error: 'Missing guess!' }), { status: 400 });
 	}
 
 	if (
@@ -31,11 +31,14 @@ export const POST = async ({ request }) => {
 		(req.guess != -1 && req.guess < info.solved.length * N) ||
 		req.guess >= N * N
 	) {
-		return new Response(JSON.stringify({ error: 'Invalid guess' }), { status: 404 });
+		return new Response(JSON.stringify({ error: 'Invalid guess' }), { status: 400 });
 	}
 
-	if (info.count > 1000) {
-		return new Response(JSON.stringify({ error: "You're not very good at this. Restart and try again 😈" }), { status: 404 });
+	if (info.count > C) {
+		return new Response(
+			JSON.stringify({ error: "You're not very good at this. Restart and try again 😈" }),
+			{ status: 406 }
+		);
 	}
 
 	info.count += 1;
@@ -49,7 +52,7 @@ export const POST = async ({ request }) => {
 		info.selected = info.selected.filter((value) => value != guess);
 	} else {
 		if (info.selected.length >= N) {
-			return new Response(JSON.stringify({ error: 'Too many selected' }), { status: 404 });
+			return new Response(JSON.stringify({ error: 'Too many selected' }), { status: 400 });
 		}
 
 		info.selected.push(guess);

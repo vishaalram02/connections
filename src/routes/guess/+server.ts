@@ -11,22 +11,22 @@ export const POST = async ({ request }) => {
 
 	const cookies = parse(request.headers.get('cookie') || '');
 	if (!cookies || !cookies.auth) {
-		return new Response(JSON.stringify({ error: 'Missing board state' }), { status: 404 });
+		return new Response(JSON.stringify({ error: 'Missing board state' }), { status: 400 });
 	} else {
 		const token = cookies.auth;
 		try {
 			info = jwt.verify(token, JWT_SECRET) as INFO;
 		} catch {
-			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+			return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 400 });
 		}
 	}
 
 	if (info.mistakes == 0) {
-		return new Response(JSON.stringify({ error: 'No guesses left!' }), { status: 404 });
+		return new Response(JSON.stringify({ error: 'No guesses left!' }), { status: 400 });
 	}
 
 	if (info.selected.length != N) {
-		return new Response(JSON.stringify({ error: 'Cannot guess now!' }), { status: 404 });
+		return new Response(JSON.stringify({ error: 'Cannot guess now!' }), { status: 400 });
 	}
 
 	let correct = -1;

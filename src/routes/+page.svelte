@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { N, L, colors, numbers, type SQUARE } from '$lib';
+	import { N, L, C, colors, numbers, type SQUARE } from '$lib';
 	import { scale, fade } from 'svelte/transition';
 
 	export let data;
@@ -14,7 +14,7 @@
 		};
 	});
 
-	let state = data.solved.length == N ? 1 : data.mistakes == 0 ? 2 : 0; // 0: playing, 1: win, 2: lose
+	let state = data.solved.length == N ? 1 : (data.mistakes || data.count > C) == 0 ? 2 : 0; // 0: playing, 1: win, 2: lose
 	let mistakes: number = data.mistakes;
 	let solved: number[] = data.solved;
 	let active: number = -1;
@@ -28,6 +28,28 @@
 		window.location.reload();
 	};
 
+	const lose = async () => {
+		state = 2;
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+
+		for (let i = 0; i < N * N; i++) {
+			squares[i].word = '😈';
+		}
+		solved = [];
+		selected = [];
+	};
+
+	const win = async () => {
+		state = 1;
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+
+		for (let i = 0; i < N * N; i++) {
+			squares[i].word = '🤑';
+		}
+		solved = [];
+		selected = [];
+	};
+
 	const _select = async (id: number) => {
 		if (selected.length < N) active = id;
 
@@ -38,6 +60,11 @@
 			},
 			body: JSON.stringify({ guess: id })
 		});
+
+		if (res.status == 406) {
+			await lose();
+			return;
+		}
 		if (res.status != 200) return;
 		const data = await res.json();
 
@@ -117,21 +144,9 @@
 		await _guess();
 
 		if (mistakes == 0) {
-			state = 2;
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-
-			for (let i = 0; i < N * N; i++) {
-				squares[i].word = '😈';
-			}
-			solved = [];
+			await lose();
 		} else if (solved.length == N) {
-			state = 1;
-			await new Promise((resolve) => setTimeout(resolve, 1000));
-
-			for (let i = 0; i < N * N; i++) {
-				squares[i].word = '🤑';
-			}
-			solved = [];
+			await win();
 		}
 
 		pending = false;
