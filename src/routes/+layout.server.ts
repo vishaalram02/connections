@@ -54,7 +54,7 @@ export const load: LayoutServerLoad = ({ url, cookies }) => {
 
 		cookies.set('auth', newToken, {
 			path: '/',
-			maxAge: 60 * 60,
+			maxAge: 24 * 60 * 60,
 			httpOnly: false
 		});
 	}

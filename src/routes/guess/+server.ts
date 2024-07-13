@@ -70,7 +70,7 @@ export const POST = async ({ request }) => {
 
 	const newToken = jwt.sign(info, JWT_SECRET);
 	const cookie = serialize('auth', newToken, {
-		maxAge: 60 * 60,
+		maxAge: 24 * 60 * 60,
 		path: '/'
 	});
 

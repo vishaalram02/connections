@@ -9,6 +9,6 @@
 }
 
 :root {
-	--game-w: 816px;
-	--game-h: 450px;
+	--game-w: 105vh;
+	--game-h: 55vh;
 }
